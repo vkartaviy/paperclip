@@ -36,4 +36,5 @@ tmp/
 *.tmp
 .vscode/
 .claude/settings.local.json
+.claude/lint/node_modules/
 .paperclip-local/

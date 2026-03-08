@@ -12,6 +12,8 @@ Steps:
    d. If `git rerere` has auto-resolved some conflicts, verify the resolution looks correct.
    e. Show each conflict to the user with your proposed resolution and ask for approval before applying.
    f. After resolving all conflicts, stage the files and complete the merge with `git commit --no-edit`.
-6. If the merge succeeds, run `git push origin master` to push the updated branch to the fork.
-7. If changes were stashed in step 2, run `git stash pop` to restore them.
-8. Show a summary: how many new upstream commits were merged, which files had conflicts (if any), and whether local changes were preserved.
+6. If upstream added new DB migrations, rebuild the db package: `cd packages/db && npm run build`.
+   Note: our extension migrations live in `packages/db/src/migrations-ext/` with their own drizzle journal, completely independent from upstream's `migrations/` directory. No renumbering or rebasing needed.
+7. If the merge succeeds, run `git push origin master` to push the updated branch to the fork.
+8. If changes were stashed in step 2, run `git stash pop` to restore them.
+9. Show a summary: how many new upstream commits were merged, which files had conflicts (if any), and whether local changes were preserved.
