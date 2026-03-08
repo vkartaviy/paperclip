@@ -290,6 +290,8 @@ export function LiveRunWidget({ issueId, companyId }: LiveRunWidgetProps) {
         agentName: activeRun.agentName,
         adapterType: activeRun.adapterType,
         issueId,
+        error: activeRun.error,
+        errorCode: activeRun.errorCode,
       });
     }
     return [...deduped.values()].sort(

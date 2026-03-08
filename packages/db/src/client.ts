@@ -7,6 +7,7 @@ import postgres from "postgres";
 import * as schema from "./schema/index.js";
 
 const MIGRATIONS_FOLDER = fileURLToPath(new URL("./migrations", import.meta.url));
+const OFFICE_MIGRATIONS_FOLDER = fileURLToPath(new URL("./office/migrations", import.meta.url));
 const DRIZZLE_MIGRATIONS_TABLE = "__drizzle_migrations";
 const MIGRATIONS_JOURNAL_JSON = fileURLToPath(new URL("./migrations/meta/_journal.json", import.meta.url));
 
@@ -647,6 +648,7 @@ export async function applyPendingMigrations(url: string): Promise<void> {
   try {
     const db = drizzlePg(sql);
     await migratePg(db, { migrationsFolder: MIGRATIONS_FOLDER });
+    await migratePg(db, { migrationsFolder: OFFICE_MIGRATIONS_FOLDER });
   } finally {
     await sql.end();
   }
@@ -704,6 +706,7 @@ export async function migratePostgresIfEmpty(url: string): Promise<MigrationBoot
 
     const db = drizzlePg(sql);
     await migratePg(db, { migrationsFolder: MIGRATIONS_FOLDER });
+    await migratePg(db, { migrationsFolder: OFFICE_MIGRATIONS_FOLDER });
 
     return { migrated: true, reason: "migrated-empty-db", tableCount: 0 };
   } finally {

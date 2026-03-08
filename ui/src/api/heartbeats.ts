@@ -19,6 +19,8 @@ export interface LiveRunForIssue {
   agentName: string;
   adapterType: string;
   issueId?: string | null;
+  error: string | null;
+  errorCode: string | null;
 }
 
 export const heartbeatsApi = {
