@@ -277,6 +277,11 @@ export function Office() {
   const mapData = office?.mapData;
 
   // Extract seat positions and record player from map data
+  // Visual offset: seats in the Tiled map mark the chair tile, but agents render
+  // one tile lower so they appear seated at the desk. Adjust here once — all
+  // downstream consumers (canvas sprites, HTML overlays) use the corrected y.
+  const seatRenderOffset = mapData?.tileheight ?? 32;
+
   const seatPositions = useMemo(() => {
     if (!mapData) {
       return new Map<string, { x: number; y: number }>();
@@ -285,7 +290,7 @@ export function Office() {
     const map = new Map<string, { x: number; y: number }>();
 
     for (const obj of findObjects(mapData, "seat")) {
-      map.set(obj.name, { x: obj.x, y: obj.y });
+      map.set(obj.name, { x: obj.x, y: obj.y + seatRenderOffset });
     }
 
     return map;
