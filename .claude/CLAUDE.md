@@ -13,9 +13,15 @@ To minimize merge conflicts, follow these rules:
 
 ### DON'T
 - Modify upstream file structure (don't wrap/restructure JSX, don't refactor existing functions)
+- Modify upstream server routes/queries (e.g. `server/src/routes/agents.ts`, `server/src/routes/issues.ts`) to add fields or change JOINs
 - Add dependencies to root `package.json` or `pnpm-lock.yaml`
 - Add configs (`.prettierrc`, `.eslintrc`, `.editorconfig`) that conflict with upstream — our lint config lives in `.claude/lint/`
 - Touch files outside our feature scope unless absolutely necessary
+
+### Data enrichment pattern
+When you need data that upstream endpoints don't provide (e.g. issue title/status for a run):
+- **DO**: fetch the data separately on the frontend and enrich client-side (e.g. fetch issues list, build a Map by ID, look up in useMemo)
+- **DON'T**: modify upstream server queries to JOIN extra tables or add columns to the response
 
 ### Upstream touch points (keep minimal)
 When adding a new feature, the only upstream files you should touch are:
