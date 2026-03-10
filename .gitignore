@@ -38,3 +38,7 @@ tmp/
 .claude/settings.local.json
 .claude/lint/node_modules/
 .paperclip-local/
+
+# Playwright
+tests/e2e/test-results/
+tests/e2e/playwright-report/
