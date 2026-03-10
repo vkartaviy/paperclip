@@ -21,6 +21,8 @@ interface AudioState {
   playing: boolean;
 }
 
+const STORAGE_KEY = "paperclip.office-radio";
+
 class OfficeAudio {
   private iframe: HTMLIFrameElement | null = null;
   private currentStation: Station | null = null;
@@ -28,8 +30,43 @@ class OfficeAudio {
   private listeners: Array<() => void> = [];
   private snapshot: AudioState = { station: null, playing: false };
 
+  constructor() {
+    this.restore();
+  }
+
+  private persist() {
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ stationId: this.currentStation?.id ?? null, playing: this.playing }),
+      );
+    } catch {}
+  }
+
+  private restore() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+
+      if (!raw) {
+        return;
+      }
+
+      const { stationId, playing } = JSON.parse(raw) as { stationId: string | null; playing: boolean };
+      const station = STATIONS.find((s) => s.id === stationId) ?? null;
+
+      if (station) {
+        this.currentStation = station;
+      }
+
+      if (playing && station) {
+        this.play(station);
+      }
+    } catch {}
+  }
+
   private notify() {
     this.snapshot = { station: this.currentStation, playing: this.playing };
+    this.persist();
     this.listeners.forEach((fn) => fn());
   }
 
