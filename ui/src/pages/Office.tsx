@@ -268,12 +268,20 @@ export function Office() {
     const now = Date.now();
     let hasNew = false;
 
+    // System actions that aren't meaningful for speech bubbles
+    const muteActions = new Set(["heartbeat.invoked", "heartbeat.callback"]);
+
     for (const evt of activity) {
       if (seen.has(evt.id) || !evt.agentId) {
         continue;
       }
 
       seen.add(evt.id);
+
+      if (muteActions.has(evt.action)) {
+        continue;
+      }
+
       hasNew = true;
 
       setActivityBubbles((prev) => {
