@@ -969,7 +969,7 @@
          "y":0
         }],
  "nextlayerid":20,
- "nextobjectid":174,
+ "nextobjectid":181,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
@@ -1104,7 +1104,7 @@
          "margin":0,
          "name":"Images",
          "spacing":0,
-         "tilecount":2,
+         "tilecount":3,
          "tileheight":53,
          "tiles":[
                 {
@@ -1118,8 +1118,14 @@
                  "image":"images\/benice.png",
                  "imageheight":47,
                  "imagewidth":62
+                }, 
+                {
+                 "id":2,
+                 "image":"images\/dangerarea.png",
+                 "imageheight":47,
+                 "imagewidth":92
                 }],
-         "tilewidth":73
+         "tilewidth":92
         }],
  "tilewidth":32,
  "type":"map",
