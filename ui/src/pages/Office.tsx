@@ -4,6 +4,7 @@ import { useBreadcrumbs } from "@/context/BreadcrumbContext";
 import { useCompany } from "@/context/CompanyContext";
 import { useNavigate } from "@/lib/router";
 import { agentsApi } from "@/api/agents";
+import { issuesApi } from "@/api/issues";
 import { officeApi } from "@/api/office";
 import { activityApi } from "@/api/activity";
 import { heartbeatsApi } from "@/api/heartbeats";
@@ -15,45 +16,68 @@ import { RadioPlayer } from "@/components/office/RadioPlayer";
 import type { ActivityEvent, Agent, Issue } from "@paperclipai/shared";
 import type { TiledMap, TiledObject } from "@/components/office/types";
 import { officeAudio } from "@/lib/office-audio";
+import "@/components/office/office-fonts.css";
 
 function str(v: unknown): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
 
-function describeActivity(evt: ActivityEvent): string {
+function describeActivity(
+  evt: ActivityEvent,
+  issues?: Issue[],
+): { text: string; href: string | null } {
   const d = evt.details ?? {};
-  const ref = str(d.identifier) ?? str(d.issueIdentifier);
-  const title = str(d.issueTitle) ?? str(d.title);
+  const cachedIssue = evt.entityType === "issue" ? issues?.find((i) => i.id === evt.entityId) : undefined;
+  const ref =
+    str(d.identifier) ??
+    str(d.issueIdentifier) ??
+    cachedIssue?.identifier ??
+    null;
+  const title = str(d.issueTitle) ?? str(d.title) ?? cachedIssue?.title ?? null;
+  const href = ref ? `/issues/${ref}` : null;
 
   switch (evt.action) {
     case "issue.created":
-      return ref ? `Created ${ref}${title ? `: ${title}` : ""}` : "Created issue";
+      return { text: ref ? `Created ${ref}${title ? `: ${title}` : ""}` : "Created issue", href };
 
     case "issue.comment_added": {
       const snippet = str(d.bodySnippet);
 
       if (ref && snippet) {
-        return `${ref}: ${snippet.replace(/^#+\s*/m, "").replace(/\n/g, " ")}`;
+        return { text: `${ref}: ${snippet.replace(/^#+\s*/m, "").replace(/\n/g, " ")}`, href };
       }
 
-      return ref ? `Commented on ${ref}` : "Added comment";
+      return { text: ref ? `Commented on ${ref}` : "Added comment", href };
     }
     case "issue.updated": {
       const status = str(d.status);
       const priority = str(d.priority);
+      const newTitle = str(d.title);
 
       if (status && ref) {
-        return `${ref} → ${status.replace(/_/g, " ")}`;
+        return { text: `${ref} → ${status.replace(/_/g, " ")}${title ? ` · ${title}` : ""}`, href };
       }
       if (priority && ref) {
-        return `${ref} priority → ${priority}`;
+        return { text: `${ref} priority → ${priority}${title ? ` · ${title}` : ""}`, href };
+      }
+      if (newTitle && ref) {
+        return { text: `${ref}: renamed to "${newTitle}"`, href };
+      }
+      if ("assigneeAgentId" in d && ref) {
+        return { text: `${ref}: reassigned${title ? ` · ${title}` : ""}`, href };
       }
 
-      return ref ? `Updated ${ref}` : "Updated issue";
+      return { text: ref ? `Updated ${ref}${title ? `: ${title}` : ""}` : "Updated issue", href };
     }
 
+    case "issue.checked_out":
+      return { text: ref ? `Working on ${ref}${title ? `: ${title}` : ""}` : "Checked out issue", href };
+
+    case "issue.released":
+      return { text: ref ? `Finished ${ref}${title ? `: ${title}` : ""}` : "Released issue", href };
+
     default:
-      return evt.action.replace(/^[a-z]+\./, "").replace(/_/g, " ");
+      return { text: evt.action.replace(/^[a-z]+\./, "").replace(/_/g, " "), href: null };
   }
 }
 
@@ -99,6 +123,21 @@ export function Office() {
     refetchInterval: 30_000,
   });
 
+  const { data: issues } = useQuery({
+    queryKey: queryKeys.issues.list(selectedCompanyId!),
+    queryFn: () => issuesApi.list(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+    refetchInterval: 60_000,
+  });
+
+  const issueById = useMemo(() => {
+    const map = new Map<string, Issue>();
+    for (const issue of issues ?? []) {
+      map.set(issue.id, issue);
+    }
+    return map;
+  }, [issues]);
+
   // Live runs for speech bubbles (current work)
   const { data: liveRuns } = useQuery({
     queryKey: queryKeys.liveRuns(selectedCompanyId!),
@@ -112,39 +151,37 @@ export function Office() {
       return new Map<string, { text: string; href: string }>();
     }
 
+    // Build a lookup: agentId → in_progress issue (most relevant current work)
+    const inProgressByAgent = new Map<string, Issue>();
+    for (const issue of issues ?? []) {
+      if (issue.status === "in_progress" && issue.assigneeAgentId) {
+        inProgressByAgent.set(issue.assigneeAgentId, issue);
+      }
+    }
+
     const map = new Map<string, { text: string; href: string }>();
-    const issues = queryClient.getQueryData<Issue[]>(queryKeys.issues.list(selectedCompanyId));
 
     for (const run of liveRuns) {
       if (map.has(run.agentId)) {
         continue;
       }
 
-      const href = `/agents/${run.agentId}/runs/${run.id}`;
+      // Prefer in_progress issue assigned to this agent over contextSnapshot
+      const issue = inProgressByAgent.get(run.agentId)
+        ?? (run.issueId ? issueById.get(run.issueId) : undefined);
 
-      if (run.issueId) {
-        const issue = issues?.find((i) => i.id === run.issueId);
-        const label = issue ? `${issue.identifier}: ${issue.title}` : run.issueId.slice(0, 8);
-
-        map.set(run.agentId, {
-          text: label,
-          href: issue ? `/issues/${issue.identifier}` : href,
-        });
+      if (!issue) {
         continue;
       }
 
-      const detail = run.triggerDetail;
-
-      if (detail && detail !== "system" && detail !== "manual") {
-        map.set(run.agentId, { text: detail.replace(/_/g, " "), href });
-        continue;
-      }
-
-      // Skip "heartbeat" — not useful as bubble text
+      map.set(run.agentId, {
+        text: `${issue.identifier}${issue.title ? `: ${issue.title}` : ""}`,
+        href: `/issues/${issue.identifier}`,
+      });
     }
 
     return map;
-  }, [liveRuns, selectedCompanyId, queryClient]);
+  }, [liveRuns, selectedCompanyId, issues, issueById]);
 
   // Recent runs for error bubbles (HeartbeatRun has error/errorCode fields)
   const hasErrorAgents = agents?.some((a) => a.status === "error") ?? false;
@@ -195,19 +232,20 @@ export function Office() {
 
   const latestActivityByAgent = useMemo(() => {
     if (!activity) {
-      return new Map<string, { text: string; at: Date }>();
+      return new Map<string, { text: string; href: string | null; at: Date }>();
     }
 
-    const map = new Map<string, { text: string; at: Date }>();
+    const map = new Map<string, { text: string; href: string | null; at: Date }>();
 
     for (const evt of activity) {
       if (evt.agentId && !map.has(evt.agentId)) {
-        map.set(evt.agentId, { text: describeActivity(evt), at: new Date(evt.createdAt) });
+        const { text, href } = describeActivity(evt, issues);
+        map.set(evt.agentId, { text, href, at: new Date(evt.createdAt) });
       }
     }
 
     return map;
-  }, [activity]);
+  }, [activity, issues]);
 
   // Temporary activity speech bubbles — appear when new events arrive via WS
   const seenActivityRef = useRef<Set<string> | null>(null);
@@ -240,7 +278,7 @@ export function Office() {
 
       setActivityBubbles((prev) => {
         const next = new Map(prev);
-        next.set(evt.agentId!, { text: describeActivity(evt), expiresAt: now + 6000 });
+        next.set(evt.agentId!, { text: describeActivity(evt, issues).text, expiresAt: now + 6000 });
         return next;
       });
     }
@@ -250,7 +288,7 @@ export function Office() {
       const ids = activity.map((e) => e.id);
       seenActivityRef.current = new Set(ids);
     }
-  }, [activity]);
+  }, [activity, issues]);
 
   // Cleanup expired bubbles
   useEffect(() => {
@@ -322,7 +360,7 @@ export function Office() {
       charSprite: string;
       currentWork: { text: string; href: string } | null;
       activityBubble: string | null;
-      lastAction: { text: string; at: Date } | null;
+      lastAction: { text: string; href: string | null; at: Date } | null;
       errorText: string | null;
     }> = [];
 

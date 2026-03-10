@@ -14,15 +14,15 @@ export function SpeechBubble({ text, variant = "default", onClick }: Props) {
   return (
     <div
       className="absolute left-1/2 -translate-x-1/2 transition-opacity w-max"
-      style={{ bottom: "120%", fontSize: "0.9cqi", maxWidth: "20cqi" }}
+      style={{ bottom: "120%", fontSize: "0.9cqi", maxWidth: "16cqi" }}
       onClick={onClick}
     >
       <div
         className={cn(
-          "relative px-2 py-1 text-center border shadow-md",
+          "relative px-2 py-1 text-center border shadow-md line-clamp-2",
           isError
-            ? "bg-red-50 text-red-700 border-red-200 line-clamp-3"
-            : "bg-white text-black border-black/10 line-clamp-2 hover:bg-gray-50 transition-colors cursor-pointer"
+            ? "bg-red-50 text-red-700 border-red-200"
+            : "bg-white text-black border-black/10 hover:bg-gray-50 transition-colors cursor-pointer"
         )}
         style={{ borderRadius: 12 }}
       >

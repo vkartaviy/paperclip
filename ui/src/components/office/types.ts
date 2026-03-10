@@ -1,12 +1,30 @@
-export interface TiledTileset {
-  firstgid: number;
+export interface TiledTileImage {
+  id: number;
   image: string;
   imagewidth: number;
   imageheight: number;
+}
+
+export interface TiledTileset {
+  firstgid: number;
+  image?: string;
+  imagewidth?: number;
+  imageheight?: number;
   tilewidth: number;
   tileheight: number;
   columns: number;
   tilecount: number;
+  tiles?: TiledTileImage[];
+}
+
+export interface TiledText {
+  text: string;
+  fontfamily?: string;
+  pixelsize?: number;
+  color?: string;
+  halign?: "left" | "center" | "right";
+  valign?: "top" | "center" | "bottom";
+  wrap?: boolean;
 }
 
 export interface TiledObject {
@@ -18,7 +36,9 @@ export interface TiledObject {
   y: number;
   width: number;
   height: number;
+  rotation?: number;
   visible?: boolean;
+  text?: TiledText;
   properties?: Array<{ name: string; value: string }>;
 }
 

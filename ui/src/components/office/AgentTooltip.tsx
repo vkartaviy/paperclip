@@ -1,5 +1,6 @@
 import type { Agent } from "@paperclipai/shared";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "@/lib/router";
 import { agentStatusDot, agentStatusDotDefault } from "@/lib/status-colors";
 import { timeAgo } from "@/lib/timeAgo";
 import { getUIAdapter } from "@/adapters/registry";
@@ -35,6 +36,7 @@ const statusLabel: Record<string, string> = {
 
 interface LastAction {
   text: string;
+  href: string | null;
   at: Date;
 }
 
@@ -59,6 +61,7 @@ export function AgentTooltip({
   onUnseat,
   onClose,
 }: Props) {
+  const navigate = useNavigate();
   const isRunning = agent.status === "running";
   const adapterLabel = getUIAdapter(agent.adapterType).label;
   const cfg = agent.adapterConfig as Record<string, unknown>;
@@ -163,7 +166,16 @@ export function AgentTooltip({
             {lastAction && (
               <div className="border-t border-border mt-2.5 pt-2">
                 <div className="text-xs text-muted-foreground line-clamp-2">
-                  <InlineMarkdown>{lastAction.text}</InlineMarkdown>
+                  {lastAction.href ? (
+                    <a
+                      className="hover:text-foreground transition-colors cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); navigate(lastAction.href!); }}
+                    >
+                      <InlineMarkdown>{lastAction.text}</InlineMarkdown>
+                    </a>
+                  ) : (
+                    <InlineMarkdown>{lastAction.text}</InlineMarkdown>
+                  )}
                 </div>
                 <div className="text-[10px] text-muted-foreground/60 mt-1">
                   {timeAgo(lastAction.at)}

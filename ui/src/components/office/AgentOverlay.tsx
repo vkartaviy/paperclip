@@ -13,6 +13,7 @@ interface CurrentWork {
 
 interface LastAction {
   text: string;
+  href: string | null;
   at: Date;
 }
 
