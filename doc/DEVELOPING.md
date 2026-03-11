@@ -132,6 +132,8 @@ Instead, create a repo-local Paperclip config plus an isolated instance for the 
 
 ```sh
 paperclipai worktree init
+# or create the git worktree and initialize it in one step:
+pnpm paperclipai worktree:make paperclip-pr-432
 ```
 
 This command:
@@ -149,6 +151,8 @@ Seed modes:
 - `--no-seed` creates an empty isolated instance
 
 After `worktree init`, both the server and the CLI auto-load the repo-local `.paperclip/.env` when run inside that worktree, so normal commands like `pnpm dev`, `paperclipai doctor`, and `paperclipai db:backup` stay scoped to the worktree instance.
+
+That repo-local env also sets `PAPERCLIP_IN_WORKTREE=true`, which the server can use for worktree-specific UI behavior such as an alternate favicon.
 
 Print shell exports explicitly when needed:
 

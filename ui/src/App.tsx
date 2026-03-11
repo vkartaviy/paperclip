@@ -29,9 +29,11 @@ import { NewAgent } from "./pages/NewAgent";
 import { AuthPage } from "./pages/Auth";
 import { BoardClaimPage } from "./pages/BoardClaim";
 import { InviteLandingPage } from "./pages/InviteLanding";
+import { NotFoundPage } from "./pages/NotFound";
 import { queryKeys } from "./lib/queryKeys";
 import { useCompany } from "./context/CompanyContext";
 import { useDialog } from "./context/DialogContext";
+import { loadLastInboxTab } from "./lib/inbox";
 
 function BootstrapPendingPage({ hasActiveInvite = false }: { hasActiveInvite?: boolean }) {
   return (
@@ -139,12 +141,19 @@ function boardRoutes() {
       <Route path="approvals/:approvalId" element={<ApprovalDetail />} />
       <Route path="costs" element={<Costs />} />
       <Route path="activity" element={<Activity />} />
-      <Route path="inbox" element={<Navigate to="/inbox/new" replace />} />
-      <Route path="inbox/new" element={<Inbox />} />
+      <Route path="inbox" element={<InboxRootRedirect />} />
+      <Route path="inbox/recent" element={<Inbox />} />
+      <Route path="inbox/unread" element={<Inbox />} />
       <Route path="inbox/all" element={<Inbox />} />
+      <Route path="inbox/new" element={<Navigate to="/inbox/recent" replace />} />
       <Route path="design-guide" element={<DesignGuide />} />
+      <Route path="*" element={<NotFoundPage scope="board" />} />
     </>
   );
+}
+
+function InboxRootRedirect() {
+  return <Navigate to={`/inbox/${loadLastInboxTab()}`} replace />;
 }
 
 function CompanyRootRedirect() {
@@ -242,6 +251,7 @@ export function App() {
           <Route path=":companyPrefix" element={<Layout />}>
             {boardRoutes()}
           </Route>
+          <Route path="*" element={<NotFoundPage scope="global" />} />
         </Route>
       </Routes>
       <OnboardingWizard />
