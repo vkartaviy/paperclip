@@ -66,7 +66,13 @@ export function parseJson(value: string): Record<string, unknown> | null {
 
 export function appendWithCap(prev: string, chunk: string, cap = MAX_CAPTURE_BYTES) {
   const combined = prev + chunk;
-  return combined.length > cap ? combined.slice(combined.length - cap) : combined;
+  if (combined.length <= cap) return combined;
+  let result = combined.slice(combined.length - cap);
+  // If slice cut through a surrogate pair, drop the leading lone surrogate
+  if (result.length > 0 && result.charCodeAt(0) >= 0xdc00 && result.charCodeAt(0) <= 0xdfff) {
+    result = result.slice(1);
+  }
+  return result;
 }
 
 export function resolvePathValue(obj: Record<string, unknown>, dottedPath: string) {
