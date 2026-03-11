@@ -127,6 +127,7 @@ export function AgentOverlay({
               agent={agent}
               seatId={seatId}
               charSprite={charSprite}
+              currentWork={currentWork}
               lastAction={lastAction}
               editing={isEditing}
               onChangeSprite={(agentId, sid, sprite) => {

@@ -40,10 +40,16 @@ interface LastAction {
   at: Date;
 }
 
+interface CurrentWork {
+  text: string;
+  href: string;
+}
+
 interface Props {
   agent: Agent;
   seatId: string;
   charSprite: string;
+  currentWork: CurrentWork | null;
   lastAction: LastAction | null;
   editing: boolean;
   onChangeSprite?: (agentId: string, seatId: string, charSprite: string) => void;
@@ -55,6 +61,7 @@ export function AgentTooltip({
   agent,
   seatId,
   charSprite,
+  currentWork,
   lastAction,
   editing,
   onChangeSprite,
@@ -162,23 +169,37 @@ export function AgentTooltip({
               </div>
             </div>
 
-            {/* Last action */}
-            {lastAction && (
+            {/* Current work */}
+            {currentWork && (
               <div className="border-t border-border mt-2.5 pt-2">
-                <div className="text-xs text-muted-foreground line-clamp-2">
-                  {lastAction.href ? (
-                    <a
-                      className="hover:text-foreground transition-colors cursor-pointer"
-                      onClick={(e) => { e.stopPropagation(); navigate(lastAction.href!); }}
-                    >
+                <a
+                  className="block text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer line-clamp-2"
+                  onClick={(e) => { e.stopPropagation(); navigate(currentWork.href); }}
+                >
+                  <InlineMarkdown>{currentWork.text}</InlineMarkdown>
+                </a>
+              </div>
+            )}
+
+            {/* Last action (hide if same issue as current work) */}
+            {lastAction && !(currentWork && lastAction.href && currentWork.href === lastAction.href) && (
+              <div className="border-t border-border mt-2.5 pt-2">
+                <div className="text-xs text-muted-foreground">
+                  <div className="line-clamp-2">
+                    {lastAction.href ? (
+                      <a
+                        className="hover:text-foreground transition-colors cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); navigate(lastAction.href!); }}
+                      >
+                        <InlineMarkdown>{lastAction.text}</InlineMarkdown>
+                      </a>
+                    ) : (
                       <InlineMarkdown>{lastAction.text}</InlineMarkdown>
-                    </a>
-                  ) : (
-                    <InlineMarkdown>{lastAction.text}</InlineMarkdown>
-                  )}
-                </div>
-                <div className="text-[10px] text-muted-foreground/60 mt-1">
-                  {timeAgo(lastAction.at)}
+                    )}
+                  </div>
+                  <div className="text-[10px] text-muted-foreground/60 mt-0.5">
+                    {timeAgo(lastAction.at)}
+                  </div>
                 </div>
               </div>
             )}

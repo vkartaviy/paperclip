@@ -36,18 +36,20 @@ function describeActivity(
   const title = str(d.issueTitle) ?? str(d.title) ?? cachedIssue?.title ?? null;
   const href = ref ? `/issues/${ref}` : null;
 
+  const detail = title ? `: ${title}` : "";
+
   switch (evt.action) {
     case "issue.created":
-      return { text: ref ? `Created ${ref}${title ? `: ${title}` : ""}` : "Created issue", href };
+      return { text: ref ? `Created ${ref}${detail}` : "Created issue", href };
 
     case "issue.comment_added": {
       const snippet = str(d.bodySnippet);
+      const cleanSnippet = snippet?.replace(/^#+\s*/m, "").replace(/\n/g, " ");
 
-      if (ref && snippet) {
-        return { text: `${ref}: ${snippet.replace(/^#+\s*/m, "").replace(/\n/g, " ")}`, href };
-      }
-
-      return { text: ref ? `Commented on ${ref}` : "Added comment", href };
+      return {
+        text: ref ? `Commented on ${ref}${cleanSnippet ? `: ${cleanSnippet}` : ""}` : "Added comment",
+        href,
+      };
     }
     case "issue.updated": {
       const status = str(d.status);
@@ -55,31 +57,34 @@ function describeActivity(
       const newTitle = str(d.title);
 
       if (status && ref) {
-        return { text: `${ref} → ${status.replace(/_/g, " ")}${title ? ` · ${title}` : ""}`, href };
+        return { text: `Updated ${ref} (status → ${status.replace(/_/g, " ")})${detail}`, href };
       }
       if (priority && ref) {
-        return { text: `${ref} priority → ${priority}${title ? ` · ${title}` : ""}`, href };
+        return { text: `Updated ${ref} (priority → ${priority})${detail}`, href };
       }
       if (newTitle && ref) {
-        return { text: `${ref}: renamed to "${newTitle}"`, href };
+        return { text: `Renamed ${ref}: ${newTitle}`, href };
       }
       if ("assigneeAgentId" in d && ref) {
-        return { text: `${ref}: reassigned${title ? ` · ${title}` : ""}`, href };
+        return { text: `Reassigned ${ref}${detail}`, href };
       }
 
-      return { text: ref ? `Updated ${ref}${title ? `: ${title}` : ""}` : "Updated issue", href };
+      return { text: ref ? `Updated ${ref}${detail}` : "Updated issue", href };
     }
 
     case "issue.checked_out":
-      return { text: ref ? `Working on ${ref}${title ? `: ${title}` : ""}` : "Checked out issue", href };
+      return { text: ref ? `Checked out ${ref}${detail}` : "Checked out issue", href };
 
     case "issue.released":
-      return { text: ref ? `Finished ${ref}${title ? `: ${title}` : ""}` : "Released issue", href };
+      return { text: ref ? `Finished ${ref}${detail}` : "Released issue", href };
 
     default:
       return { text: evt.action.replace(/^[a-z]+\./, "").replace(/_/g, " "), href: null };
   }
 }
+
+// System activity actions that don't carry user-visible meaning
+const muteActions = new Set(["heartbeat.invoked", "heartbeat.callback"]);
 
 function findObjects(mapData: TiledMap, type: string): TiledObject[] {
   const result: TiledObject[] = [];
@@ -238,7 +243,7 @@ export function Office() {
     const map = new Map<string, { text: string; href: string | null; at: Date }>();
 
     for (const evt of activity) {
-      if (evt.agentId && !map.has(evt.agentId)) {
+      if (evt.agentId && !map.has(evt.agentId) && !muteActions.has(evt.action)) {
         const { text, href } = describeActivity(evt, issues);
         map.set(evt.agentId, { text, href, at: new Date(evt.createdAt) });
       }
@@ -267,9 +272,6 @@ export function Office() {
     const seen = seenActivityRef.current;
     const now = Date.now();
     let hasNew = false;
-
-    // System actions that aren't meaningful for speech bubbles
-    const muteActions = new Set(["heartbeat.invoked", "heartbeat.callback"]);
 
     for (const evt of activity) {
       if (seen.has(evt.id) || !evt.agentId) {
