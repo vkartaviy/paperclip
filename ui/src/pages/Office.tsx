@@ -45,10 +45,12 @@ function describeActivity(
     case "issue.comment_added": {
       const snippet = str(d.bodySnippet);
       const cleanSnippet = snippet?.replace(/^#+\s*/m, "").replace(/\n/g, " ");
+      const commentId = str(d.commentId);
+      const commentHref = href && commentId ? `${href}#comment-${commentId}` : href;
 
       return {
         text: ref ? `Commented on ${ref}${cleanSnippet ? `: ${cleanSnippet}` : ""}` : "Added comment",
-        href,
+        href: commentHref,
       };
     }
     case "issue.updated": {
@@ -151,6 +153,14 @@ export function Office() {
     refetchInterval: 30_000,
   });
 
+  // Latest activity (needed early for current work deep-links + tooltip)
+  const { data: activity } = useQuery({
+    queryKey: queryKeys.activity(selectedCompanyId!),
+    queryFn: () => activityApi.list(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+    refetchInterval: 30_000,
+  });
+
   const currentWorkByAgent = useMemo(() => {
     if (!liveRuns || !selectedCompanyId) {
       return new Map<string, { text: string; href: string }>();
@@ -161,6 +171,18 @@ export function Office() {
     for (const issue of issues ?? []) {
       if (issue.status === "in_progress" && issue.assigneeAgentId) {
         inProgressByAgent.set(issue.assigneeAgentId, issue);
+      }
+    }
+
+    // Build a lookup: agentId+issueId → latest commentId from activity
+    const latestCommentByAgentIssue = new Map<string, string>();
+    for (const evt of activity ?? []) {
+      if (evt.action === "issue.comment_added" && evt.agentId && evt.entityType === "issue") {
+        const key = `${evt.agentId}:${evt.entityId}`;
+        if (!latestCommentByAgentIssue.has(key)) {
+          const commentId = str(evt.details?.commentId);
+          if (commentId) latestCommentByAgentIssue.set(key, commentId);
+        }
       }
     }
 
@@ -179,14 +201,17 @@ export function Office() {
         continue;
       }
 
+      const baseHref = `/issues/${issue.identifier}`;
+      const commentId = latestCommentByAgentIssue.get(`${run.agentId}:${issue.id}`);
+
       map.set(run.agentId, {
         text: `${issue.identifier}${issue.title ? `: ${issue.title}` : ""}`,
-        href: `/issues/${issue.identifier}`,
+        href: commentId ? `${baseHref}#comment-${commentId}` : baseHref,
       });
     }
 
     return map;
-  }, [liveRuns, selectedCompanyId, issues, issueById]);
+  }, [liveRuns, selectedCompanyId, issues, issueById, activity]);
 
   // Recent runs for error bubbles (HeartbeatRun has error/errorCode fields)
   const hasErrorAgents = agents?.some((a) => a.status === "error") ?? false;
@@ -228,13 +253,6 @@ export function Office() {
   }, [recentRuns]);
 
   // Latest activity per agent (for tooltip)
-  const { data: activity } = useQuery({
-    queryKey: queryKeys.activity(selectedCompanyId!),
-    queryFn: () => activityApi.list(selectedCompanyId!),
-    enabled: !!selectedCompanyId,
-    refetchInterval: 30_000,
-  });
-
   const latestActivityByAgent = useMemo(() => {
     if (!activity) {
       return new Map<string, { text: string; href: string | null; at: Date }>();

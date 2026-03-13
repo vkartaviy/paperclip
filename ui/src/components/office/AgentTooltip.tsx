@@ -182,7 +182,7 @@ export function AgentTooltip({
             )}
 
             {/* Last action (hide if same issue as current work) */}
-            {lastAction && !(currentWork && lastAction.href && currentWork.href === lastAction.href) && (
+            {lastAction && !(currentWork && lastAction.href && currentWork.href.split("#")[0] === lastAction.href.split("#")[0]) && (
               <div className="border-t border-border mt-2.5 pt-2">
                 <div className="text-xs text-muted-foreground">
                   <div className="line-clamp-2">
