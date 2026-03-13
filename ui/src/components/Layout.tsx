@@ -5,7 +5,6 @@ import { Link, Outlet, useLocation, useNavigate, useParams } from "@/lib/router"
 import { CompanyRail } from "./CompanyRail";
 import { Sidebar } from "./Sidebar";
 import { InstanceSidebar } from "./InstanceSidebar";
-import { SidebarNavItem } from "./SidebarNavItem";
 import { BreadcrumbBar } from "./BreadcrumbBar";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { CommandPalette } from "./CommandPalette";
@@ -24,6 +23,7 @@ import { useTheme } from "../context/ThemeContext";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useCompanyPageMemory } from "../hooks/useCompanyPageMemory";
 import { healthApi } from "../api/health";
+import { shouldSyncCompanySelectionFromRoute } from "../lib/company-selection";
 import { queryKeys } from "../lib/queryKeys";
 import { cn } from "../lib/utils";
 import { NotFoundPage } from "../pages/NotFound";
@@ -38,6 +38,7 @@ export function Layout() {
     loading: companiesLoading,
     selectedCompany,
     selectedCompanyId,
+    selectionSource,
     setSelectedCompanyId,
   } = useCompany();
   const { theme, toggleTheme } = useTheme();
@@ -90,7 +91,13 @@ export function Layout() {
       return;
     }
 
-    if (selectedCompanyId !== matchedCompany.id) {
+    if (
+      shouldSyncCompanySelectionFromRoute({
+        selectionSource,
+        selectedCompanyId,
+        routeCompanyId: matchedCompany.id,
+      })
+    ) {
       setSelectedCompanyId(matchedCompany.id, { source: "route_sync" });
     }
   }, [
@@ -101,6 +108,7 @@ export function Layout() {
     location.pathname,
     location.search,
     navigate,
+    selectionSource,
     selectedCompanyId,
     setSelectedCompanyId,
   ]);
@@ -249,12 +257,15 @@ export function Layout() {
           </div>
           <div className="border-t border-r border-border px-3 py-2 bg-background">
             <div className="flex items-center gap-1">
-              <SidebarNavItem
-                to="/docs"
-                label="Documentation"
-                icon={BookOpen}
-                className="flex-1 min-w-0"
-              />
+              <a
+                href="https://docs.paperclip.ing/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium transition-colors text-foreground/80 hover:bg-accent/50 hover:text-foreground flex-1 min-w-0"
+              >
+                <BookOpen className="h-4 w-4 shrink-0" />
+                <span className="truncate">Documentation</span>
+              </a>
               <Button variant="ghost" size="icon-sm" className="text-muted-foreground shrink-0" asChild>
                 <Link
                   to="/instance/settings"
@@ -296,12 +307,15 @@ export function Layout() {
           </div>
           <div className="border-t border-r border-border px-3 py-2">
             <div className="flex items-center gap-1">
-              <SidebarNavItem
-                to="/docs"
-                label="Documentation"
-                icon={BookOpen}
-                className="flex-1 min-w-0"
-              />
+              <a
+                href="https://docs.paperclip.ing/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium transition-colors text-foreground/80 hover:bg-accent/50 hover:text-foreground flex-1 min-w-0"
+              >
+                <BookOpen className="h-4 w-4 shrink-0" />
+                <span className="truncate">Documentation</span>
+              </a>
               <Button variant="ghost" size="icon-sm" className="text-muted-foreground shrink-0" asChild>
                 <Link
                   to="/instance/settings"
