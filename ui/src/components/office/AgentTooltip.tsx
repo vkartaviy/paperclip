@@ -83,7 +83,7 @@ export function AgentTooltip({
       )}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="bg-popover border border-border rounded-2xl px-3.5 py-3 shadow-lg min-w-72 overflow-hidden">
+      <div className="bg-popover border border-border rounded-2xl px-3.5 py-3 shadow-lg min-w-72 max-w-72 overflow-hidden">
         {editing ? (
           <>
             <div className="text-xs font-medium text-muted-foreground mb-1">Change character</div>
